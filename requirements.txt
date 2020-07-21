@@ -1,0 +1,16 @@
+werkzeug==0.16.1
+Flask_Cors==3.0.8
+Flask==1.1.1
+tornado==6.0.3
+python_dateutil==2.8.0
+typing==3.7.4.1
+certifi
+six
+paho-mqtt
+tox
+psycopg2-binary
+psutil
+sqlalchemy
+pandas==1.0.1
+pydevd-pycharm~=193.6015.10
+ttictoc

@@ -1,0 +1,113 @@
+version: '3'
+services:
+    composition-service:
+        build:
+            context: ../composition-service
+            dockerfile: Dockerfile
+        ports:
+            - 127.0.0.1:8999:8999
+            - 0.0.0.0:8000:8000
+        env_file:
+            - .compose-envs/composition-service.env
+        depends_on:
+            - composition_consul
+            - redis
+        networks:
+            - "datarec"
+    rest2mqtt:
+        build:
+            context: ../rest2mqtt
+            dockerfile: Dockerfile
+        restart: on-failure
+        ports:
+            - 0.0.0.0:8080:8080
+        env_file:
+            - .compose-envs/rest2mqtt.env
+        depends_on:
+            - composition_consul
+            - composition-service
+            - rmq-mqtt
+        networks:
+            - "datarec"
+    mqtt2timescale:
+        build:
+            context: ../mqtt2timescale
+            dockerfile: Dockerfile-mini
+        restart: on-failure
+        ports:
+            - 0.0.0.0:8081:8081
+        env_file:
+            - .compose-envs/mqtt2timescale.env
+        depends_on:
+            - composition_consul
+            - composition-service
+            - rmq-mqtt
+            - rest2mqtt
+            - timescale
+        networks:
+            - "datarec"
+    rmq-mqtt:
+        build:
+            context: rabbitmq-mqtt-docker
+            dockerfile: Dockerfile
+        ports:
+            - 0.0.0.0:15672:15672
+            - 0.0.0.0:5672:5672
+            - 0.0.0.0:1883:1883
+        env_file:
+            - .compose-envs/rmq-mqtt.env
+        volumes:
+            - rabbitmq:/var/lib/rabbitmq
+        networks:
+            - "datarec"
+    composition_consul:
+        image: consul:1.5
+        ports:
+          - 127.0.0.1:8500:8500
+        env_file:
+            - .compose-envs/composition_consul.env
+        networks:
+         - "datarec"
+    redis:
+        image: bitnami/redis:latest
+        env_file:
+            - .compose-envs/redis.env
+        ports:
+            - 127.0.0.1:6379:6379
+        volumes:
+            - redis_data:/bitnami/redis/data
+        networks:
+            - "datarec"
+    timescale:
+        image: timescale/timescaledb:latest-pg11
+        env_file:
+            - .compose-envs/timescale.env
+        ports:
+            - 0.0.0.0:5432:5432
+        #volumes:
+        #    - /app:/var/lib/postgresql/data
+        networks:
+            - "datarec"
+        volumes:
+            - timescale:/var/lib/postgresql/data
+    portainer:
+        image: portainer/portainer
+        ports:
+            - 0.0.0.0:3333:8000
+            - 0.0.0.0:9000:9000
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - portainer_data:/data portainer/portainer
+networks:
+  datarec:
+    driver: bridge
+
+volumes:
+    redis_data:
+    timescale:
+        external: true
+    portainer_data:
+        external: true
+    rabbitmq:
+        external: true
+    
